@@ -20,6 +20,8 @@ from typing import Dict
 
 from asyncio import Lock
 
+import traceback
+
 class QueryKit(object):
     """
       <node>
@@ -87,7 +89,7 @@ class QueryKit(object):
                 if key == "openmandriva":
                     self._dnf_objects[key].conf.substitutions['releasever'] = '4.0'
                 if key == "mageia":
-                    self._dnf_objects[key].conf.substitutions['releasever'] = '7.1'
+                    self._dnf_objects[key].conf.substitutions['releasever'] = '7'
                 self._dnf_objects[key].conf.zchunk = False
                 self._dnf_objects[key].conf.reposdir = join(dirname(__file__), key)
                 self._dnf_objects[key].conf.cachedir = join(dirname(__file__), "cache", key)
@@ -95,7 +97,7 @@ class QueryKit(object):
                 self._dnf_objects[key].fill_sack(load_system_repo=False)
             except Exception as e:
                 print("Failed to load {}!".format(key))
-                print("Error:\n>>>\t".format(e))
+                print("Error:\n>>>\t{}".format(e))
                 to_pop.append(key)
                 continue
             print("Loaded {}!".format(key))
