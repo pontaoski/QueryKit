@@ -63,7 +63,7 @@ class QueryKit(object):
         for key in self._dnf_objects:
             try:
                 print("Refreshing {}...".format(key))
-                self._dnf_objects[key].repos = None
+                self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
                 self._dnf_objects[key].read_all_repos()
                 self._dnf_objects[key].fill_sack(load_system_repo=False)
             except:
