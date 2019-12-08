@@ -29,7 +29,7 @@ class QueryKit(object):
             <method name='SearchPackages'>
               <arg type='s' name='query' direction='in'/>
               <arg type='s' name='distro' direction='in'/>
-              <arg type='a(ss)' name='packages' direction='out'/>
+              <arg type='a(sssii)' name='packages' direction='out'/>
             </method>
             <property name="Distros" type="as" access="read">
               <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
@@ -43,14 +43,14 @@ class QueryKit(object):
 
     def SearchPackages(self, query, distro):
         if distro not in self._dnf_objects.keys():
-            return [('Invalid Distro', 'This is an invalid distro.')]
+            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1)]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
         available_pkgs: dnf.query.Query = available_pkgs.filter(name__substr=query,arch=["noarch","x86_64"])
 
         pkgs = []
         for pkg in available_pkgs:
-            pkgs.append((pkg.name, pkg.summary))
+            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize))
 
         return pkgs
 
