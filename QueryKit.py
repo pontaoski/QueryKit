@@ -48,7 +48,7 @@ class QueryKit(object):
       </node>
     """
 
-    _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "opensuse": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base()}
+    _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base()}
     _lockdict: Dict[str,Lock]
 
     def SearchPackages(self, query, distro):

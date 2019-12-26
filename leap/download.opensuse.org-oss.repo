@@ -1,0 +1,9 @@
+[download.opensuse.org-oss]
+name=Main Repository (OSS)
+enabled=1
+autorefresh=1
+metalink=http://download.opensuse.org/distribution/leap/15.1/repo/oss/repodata/repomd.xml.metalink
+path=/
+type=rpm-md
+keeppackages=0
+gpgcheck=0
