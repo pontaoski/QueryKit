@@ -53,7 +53,7 @@ class QueryKit(object):
 
     def SearchPackages(self, query, distro):
         if distro not in self._dnf_objects.keys():
-            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1)]
+            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A')]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
         available_pkgs: dnf.query.Query = available_pkgs.filter(name__substr=query,arch=["noarch","x86_64"])
@@ -79,7 +79,7 @@ class QueryKit(object):
 
     def QueryRepo(self, queries, distro):
         if distro not in self._dnf_objects.keys():
-            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1)]
+            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A')]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
 
