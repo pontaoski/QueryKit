@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from os.path import join, dirname
+from typing import Dict
+
 import dnf
 import dnf.base
 import dnf.conf
@@ -8,63 +11,30 @@ import dnf.query
 
 import hawkey
 
-import pydbus
+from dbus_next.service import ServiceInterface, method, dbus_property, signal, Variant
+from dbus_next.aio import MessageBus
 
-from pydbus import SessionBus
-from pydbus.generic import signal
-from os.path import join, dirname
+import asyncio
 
-from gi.repository import GLib
-
-from typing import Dict
-
-from asyncio import Lock
-
-import traceback
-
-class QueryKit(object):
-    """
-      <node>
-        <interface name='com.github.Appadeia.QueryKit'>
-            <method name='SearchPackages'>
-              <arg type='s' name='query' direction='in'/>
-              <arg type='s' name='distro' direction='in'/>
-              <arg type='a(sssiis)' name='packages' direction='out'/>
-            </method>
-            <method name='QueryRepo'>
-              <arg type='a{ss}' name='queries' direction='in'/>
-              <arg type='s' name='distro' direction='in'/>
-              <arg type='a(sssiis)' name='packages' direction='out'/>
-            </method>
-            <method name='ListFiles'>
-              <arg type='s' name='package' direction='in'/>
-              <arg type='s' name='distro' direction='in'/>
-              <arg type='as' name='files' direction='out'/>
-            </method>
-            <property name="Distros" type="as" access="read">
-              <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
-            </property>
-        </interface>
-      </node>
-    """
-
+class QueryKit(ServiceInterface):
     _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base()}
-    _lockdict: Dict[str,Lock]
 
-    def SearchPackages(self, query, distro):
+    @method(name="SearchPackages")
+    def SearchPackages(self, query: 's', distro: 's') -> 'a(sssiis)':
         if distro not in self._dnf_objects.keys():
-            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A')]
+            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
         available_pkgs: dnf.query.Query = available_pkgs.filter(name__substr=query,arch=["noarch","x86_64"])
 
         pkgs = []
         for pkg in available_pkgs:
-            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
+            pkgs.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])])
 
         return pkgs
 
-    def ListFiles(self, package, distro):
+    @method(name="ListFiles")
+    def ListFiles(self, package: 's', distro: 's') -> 'as':
         if distro not in self._dnf_objects.keys():
             return ["Invalid distro."]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
@@ -77,9 +47,10 @@ class QueryKit(object):
 
         return available_pkgs[0].files
 
-    def QueryRepo(self, queries, distro):
+    @method(name="QueryRepo")
+    def QueryRepo(self, queries: 'a{ss}', distro: 's') -> 'a(sssiis)':
         if distro not in self._dnf_objects.keys():
-            return [('Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A')]
+            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
 
@@ -108,30 +79,32 @@ class QueryKit(object):
 
         pkgs = []
         for pkg in available_pkgs:
-            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
+            pkgs.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])])
 
         return pkgs
 
-    @property
-    def Distros(self):
+    @method(name="GetDistros")
+    def GetDistros(self) -> 'as':
         keys = []
         for key in self._dnf_objects:
             keys.append(key)
         return keys
 
-    def RefreshPackages(self):
-        for key in self._dnf_objects:
-            try:
-                print("Refreshing {}...".format(key))
-                self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
-                self._dnf_objects[key].read_all_repos()
-                self._dnf_objects[key].fill_sack(load_system_repo=False)
-            except:
-                print("Could not refresh {}.".format(key))
-            print("Refreshed {}!".format(key))
-        return True
+    async def RefreshPackages(self):
+        while True:
+            for key in self._dnf_objects:
+                try:
+                    print("Refreshing {}...".format(key))
+                    self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
+                    self._dnf_objects[key].read_all_repos()
+                    self._dnf_objects[key].fill_sack(load_system_repo=False)
+                except:
+                    print("Could not refresh {}.".format(key))
+                print("Refreshed {}!".format(key))
+            await asyncio.sleep(1800)
 
-    def __init__(self):
+    def __init__(self, name):
+        super().__init__(name)
         print("Loading repos...")
 
         arch = hawkey.detect_arch()
@@ -164,11 +137,14 @@ class QueryKit(object):
         for i in to_pop:
             self._dnf_objects.pop(i)
 
-        GLib.timeout_add_seconds(1800, self.RefreshPackages)
         print("Repos loaded!")
 
-loop = GLib.MainLoop()
-bus = SessionBus()
+async def main():
+    bus: MessageBus = await MessageBus().connect()
+    await bus.request_name("com.github.Appadeia.QueryKit")
+    interface = QueryKit("com.github.Appadeia.QueryKit")
+    bus.export("/com/github/Appadeia/QueryKit", interface)
+    asyncio.ensure_future(interface.RefreshPackages())
+    await asyncio.get_event_loop().create_future()
 
-bus.publish("com.github.Appadeia.QueryKit", QueryKit())
-loop.run()
+asyncio.get_event_loop().run_until_complete(main())
