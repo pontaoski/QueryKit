@@ -93,15 +93,18 @@ class QueryKit(ServiceInterface):
     async def RefreshPackages(self):
         while True:
             for key in self._dnf_objects:
-                try:
-                    print("Refreshing {}...".format(key))
-                    self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
-                    self._dnf_objects[key].read_all_repos()
-                    self._dnf_objects[key].fill_sack(load_system_repo=False)
-                except:
-                    print("Could not refresh {}.".format(key))
+                print("Refreshing {}...".format(key))
+                await self.RefreshWorker(key)
                 print("Refreshed {}!".format(key))
             await asyncio.sleep(1800)
+
+    async def RefreshWorker(self, key):
+        try:
+            self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
+            self._dnf_objects[key].read_all_repos()
+            self._dnf_objects[key].fill_sack(load_system_repo=False)
+        except:
+            return
 
     def __init__(self, name):
         super().__init__(name)
