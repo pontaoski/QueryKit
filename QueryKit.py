@@ -29,12 +29,12 @@ class QueryKit(object):
             <method name='SearchPackages'>
               <arg type='s' name='query' direction='in'/>
               <arg type='s' name='distro' direction='in'/>
-              <arg type='a(sssii)' name='packages' direction='out'/>
+              <arg type='a(sssiis)' name='packages' direction='out'/>
             </method>
             <method name='QueryRepo'>
               <arg type='a{ss}' name='queries' direction='in'/>
               <arg type='s' name='distro' direction='in'/>
-              <arg type='a(sssii)' name='packages' direction='out'/>
+              <arg type='a(sssiis)' name='packages' direction='out'/>
             </method>
             <method name='ListFiles'>
               <arg type='s' name='package' direction='in'/>
@@ -60,7 +60,7 @@ class QueryKit(object):
 
         pkgs = []
         for pkg in available_pkgs:
-            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize))
+            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
 
         return pkgs
 
@@ -108,7 +108,7 @@ class QueryKit(object):
 
         pkgs = []
         for pkg in available_pkgs:
-            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize))
+            pkgs.append((pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
 
         return pkgs
 
