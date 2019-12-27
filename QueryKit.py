@@ -47,6 +47,35 @@ class QueryKit(ServiceInterface):
 
         return available_pkgs[0].files
 
+    @method(name="QueryRepoPackage")
+    def QueryRepoPackage(self, package: 's', query_type: 's', distro: 's') -> 'as':
+        if distro not in self._dnf_objects.keys():
+            return ["Invalid distro."]
+        dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
+        available_pkgs: dnf.query.Query = dnf_query_obj.available()
+
+        available_pkgs.filterm(name__substr=package, arch=["noarch","x86_64"])
+
+        if available_pkgs[0] is None:
+            return ["No package found."]
+
+        if query_type == "provides":
+            return [str(reldep) for reldep in available_pkgs[0].provides]
+        if query_type == "requires":
+            return [str(reldep) for reldep in available_pkgs[0].requires]
+        if query_type == "recommends":
+            return [str(reldep) for reldep in available_pkgs[0].recommends]
+        if query_type == "suggests":
+            return [str(reldep) for reldep in available_pkgs[0].suggests]
+        if query_type == "supplements":
+            return [str(reldep) for reldep in available_pkgs[0].supplements]
+        if query_type == "enhances":
+            return [str(reldep) for reldep in available_pkgs[0].conflicts]
+        if query_type == "obsoletes":
+            return [str(reldep) for reldep in available_pkgs[0].obsoletes]
+
+        return ["Invalid query."]
+
     @method(name="QueryRepo")
     def QueryRepo(self, queries: 'a{ss}', distro: 's') -> 'a(sssiis)':
         if distro not in self._dnf_objects.keys():
