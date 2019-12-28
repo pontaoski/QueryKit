@@ -89,6 +89,8 @@ class QueryKit(ServiceInterface):
             available_pkgs.filterm(file__glob=queries["file"])
         if "whatconflicts" in queries.keys():
             available_pkgs.filterm(conflicts=queries["whatconflicts"])
+        if "whatrequires" in queries.keys():
+            available_pkgs.filterm(requires=queries["whatrequires"])
         if "whatobsoletes" in queries.keys():
             available_pkgs.filterm(obsoletes=queries["whatobsoletes"])
         if "whatprovides" in queries.keys():
