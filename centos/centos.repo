@@ -1,0 +1,43 @@
+[Stream-BaseOS]
+name=CentOS-Stream-8 - Base
+baseurl=http://mirror.centos.org/centos/8-stream/BaseOS/$basearch/os/
+failovermethod=priority
+gpgkey=file:///usr/share/distribution-gpg-keys/centos/RPM-GPG-KEY-CentOS-Official
+gpgcheck=1
+skip_if_unavailable=False
+
+[Stream-AppStream]
+name=CentOS-Stream-8 - AppStream
+baseurl=http://mirror.centos.org/centos/8-stream/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///usr/share/distribution-gpg-keys/centos/RPM-GPG-KEY-CentOS-Official
+
+[Stream-PowerTools]
+name=CentOS-Stream-8 - PowerTools
+baseurl=http://mirror.centos.org/centos/8-stream/PowerTools/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///usr/share/distribution-gpg-keys/centos/RPM-GPG-KEY-CentOS-Official
+
+[Stream-centosplus]
+name=CentOS-Stream-8 - Plus
+baseurl=http://mirror.centos.org/centos/8-stream/centosplus/$basearch/os/
+gpgcheck=1
+enabled=0
+gpgkey=file:///usr/share/distribution-gpg-keys/centos/RPM-GPG-KEY-CentOS-Official
+
+[cr]
+name=CentOS-8 - cr
+baseurl=http://mirror.centos.org/centos/8/cr/$basearch/os/
+gpgcheck=1
+enabled=0
+gpgkey=file:///usr/share/distribution-gpg-keys/centos/RPM-GPG-KEY-CentOS-Official
+
+[epel]
+name=epel
+metalink=http://mirrors.fedoraproject.org/metalink?repo=epel-8&arch=$basearch
+failovermethod=priority
+gpgkey=file:///usr/share/distribution-gpg-keys/epel/RPM-GPG-KEY-EPEL-8
+gpgcheck=1
+skip_if_unavailable=False
