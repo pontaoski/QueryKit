@@ -17,7 +17,7 @@ from dbus_next.aio import MessageBus
 import asyncio
 
 class QueryKit(ServiceInterface):
-    _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base()}
+    _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base(), "centos": dnf.Base()}
 
     @method(name="SearchPackages")
     def SearchPackages(self, query: 's', distro: 's') -> 'a(sssiis)':
