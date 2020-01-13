@@ -156,6 +156,8 @@ class QueryKit(ServiceInterface):
                     self._dnf_objects[key].conf.substitutions['releasever'] = '4.0'
                 if key == "mageia":
                     self._dnf_objects[key].conf.substitutions['releasever'] = '7'
+                if key == "centos":
+                    self._dnf_objects[key].conf.substitutions['relasever'] = '8-stream'
                 self._dnf_objects[key].conf.zchunk = False
                 self._dnf_objects[key].conf.reposdir = join(dirname(__file__), key)
                 self._dnf_objects[key].conf.cachedir = join(dirname(__file__), "cache", key)
