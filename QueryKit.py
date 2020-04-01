@@ -190,7 +190,7 @@ class AlpmBackend(Backend):
         for db in handle.get_syncdbs():
             for pkg in db.pkgcache:
                 if query in pkg.name:
-                    pkgs.append(Package(pkg.desc, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url))
+                    pkgs.append(Package(pkg.name, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url))
         return pkgs
 
     def list_files(self, package: str, distro: str):
