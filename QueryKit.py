@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+from os import getcwd, uname
 from os.path import join, dirname
-from typing import Dict
+from typing import Dict, List
 
 import dnf
 import dnf.base
@@ -15,28 +16,46 @@ from dbus_next.service import ServiceInterface, method, dbus_property, signal, V
 from dbus_next.aio import MessageBus
 
 import asyncio
+import pyalpm
 
-class QueryKit(ServiceInterface):
+from dataclasses import dataclass
+
+@dataclass
+class Package():
+    name: str
+    summary: str
+    version: str
+    downloadsize: int
+    installsize: int
+    url: str
+
+class Backend():
+    def search_packages(self, query, distro) -> List[Package]:
+        return [Package("Not implemented for this backend", "", "", -1, -1, "")]
+    def list_files(self, package, distro) -> List[str]:
+        return ["Not implemented for this backend"]
+    def query_package(self, package, query_type, distro) -> List[str]:
+        return ["Not implemented for this backend"]
+    def query_repo(self, queries, distro) -> List[Package]:
+        return [Package("Not implemented for this backend", "", "", -1, -1, "")]
+    def distros(self) -> List[str]:
+        return [""]
+    def refresh(self): pass
+    def init(self): pass
+
+class DnfBackend(Backend):
     _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base(), "centos": dnf.Base()}
 
-    @method(name="SearchPackages")
-    def SearchPackages(self, query: 's', distro: 's') -> 'a(sssiis)':
-        if distro not in self._dnf_objects.keys():
-            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
+    def search_packages(self, query, distro) -> List[Package]:
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
         available_pkgs: dnf.query.Query = available_pkgs.filter(name__substr=query,arch=["noarch","x86_64"])
-
-        pkgs = []
+        pkgs: List[Package] = []
         for pkg in available_pkgs:
-            pkgs.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])])
-
+            pkgs.append(Package(pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
         return pkgs
 
-    @method(name="ListFiles")
-    def ListFiles(self, package: 's', distro: 's') -> 'as':
-        if distro not in self._dnf_objects.keys():
-            return ["Invalid distro."]
+    def list_files(self, package, distro) -> List[str]:
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
 
@@ -47,10 +66,7 @@ class QueryKit(ServiceInterface):
 
         return available_pkgs[0].files
 
-    @method(name="QueryRepoPackage")
-    def QueryRepoPackage(self, package: 's', query_type: 's', distro: 's') -> 'as':
-        if distro not in self._dnf_objects.keys():
-            return ["Invalid distro {}.".format(distro)]
+    def query_package(self, package, query_type, distro) -> List[str]:
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
 
@@ -76,10 +92,7 @@ class QueryKit(ServiceInterface):
 
         return ["Invalid query."]
 
-    @method(name="QueryRepo")
-    def QueryRepo(self, queries: 'a{ss}', distro: 's') -> 'a(sssiis)':
-        if distro not in self._dnf_objects.keys():
-            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
+    def query_repo(self, queries, distro) -> List[Package]:
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
         available_pkgs: dnf.query.Query = dnf_query_obj.available()
 
@@ -108,38 +121,16 @@ class QueryKit(ServiceInterface):
         if "whatsuggests" in queries.keys():
             available_pkgs.filterm(suggests__glob=queries["whatsuggests"])
 
-        pkgs = []
-        for pkg in available_pkgs:
-            pkgs.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])])
+        return available_pkgs
 
-        return pkgs
-
-    @method(name="GetDistros")
-    def GetDistros(self) -> 'as':
-        keys = []
-        for key in self._dnf_objects:
-            keys.append(key)
-        return keys
-
-    async def RefreshPackages(self):
-        while True:
-            for key in self._dnf_objects:
-                print("Refreshing {}...".format(key))
-                await self.RefreshWorker(key)
-                print("Refreshed {}!".format(key))
-            await asyncio.sleep(1800)
-
-    async def RefreshWorker(self, key):
-        try:
+    def refresh(self):
+        for key in self._dnf_objects.keys():
             self._dnf_objects[key].reset(goal=True,repos=True,sack=True)
             self._dnf_objects[key].read_all_repos()
             self._dnf_objects[key].fill_sack(load_system_repo=False)
-        except:
-            return
 
-    def __init__(self, name):
-        super().__init__(name)
-        print("Loading repos...")
+    def init(self):
+        print("Loading dnf repos...")
 
         arch = hawkey.detect_arch()
 
@@ -171,7 +162,128 @@ class QueryKit(ServiceInterface):
         for i in to_pop:
             self._dnf_objects.pop(i)
 
-        print("Repos loaded!")
+        print("Dnf repos loaded!")
+
+    def distros(self):
+        keys = []
+        for key in self._dnf_objects.keys():
+            keys.append(key)
+        return keys
+
+class AlpmBackend(Backend):
+    _handles: Dict[str, pyalpm.Handle] = {
+        "arch": pyalpm.Handle(join(getcwd(), "cache/arch"), join(getcwd(), "cache/arch/dbs"))
+    }
+
+    _mirrors: Dict[str,List[str]] = {
+        "arch": ["http://mirrors.acm.wpi.edu/archlinux/{repo}/os/{arch}"]
+    }
+
+    _dbs: Dict[str,List[str]] = {
+        "arch": ["core", "community", "extra"]
+    }
+
+    def search_packages(self, query, distro):
+        handle = self._handles[distro]
+        pkgs = []
+        for db in handle.get_syncdbs():
+            query = db.search(query)
+            for pkg in query:
+                pkgs.append(Package(pkg.desc, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url))
+        return pkgs
+
+    def init(self):
+        print("Loading alpm handles...")
+        for key in self._handles.keys():
+            self._handles[key].arch = uname()[-1]
+            for db in self._dbs[key]:
+                syncdb = self._handles[key].register_syncdb(db, 0)
+                syncdb.servers = [item.format(repo = db, arch = uname()[-1]) for item in self._mirrors[key]]
+                syncdb.update(False)
+        print("Done loading alpm handles!")
+
+    def distros(self):
+        keys = []
+        for key in self._handles.keys():
+            keys.append(key)
+        return keys
+
+class QueryKit(ServiceInterface):
+    _backends: List[Backend] = [DnfBackend(), AlpmBackend()]
+
+    def _grabBackendForDistro(self, distro) -> Backend:
+        for backend in self._backends:
+            for dist in backend.distros():
+                if dist == distro:
+                    return backend
+        return None
+
+    @method(name="SearchPackages")
+    def SearchPackages(self, query: 's', distro: 's') -> 'a(sssiis)':
+        backend = self._grabBackendForDistro(distro)
+        if backend is None:
+            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
+
+        pkgs = backend.search_packages(query, distro)
+        ret = []
+        for pkg in pkgs:
+            ret.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.url])
+        return ret
+
+    @method(name="ListFiles")
+    def ListFiles(self, package: 's', distro: 's') -> 'as':
+        backend = self._grabBackendForDistro(distro)
+        if backend is None:
+            return ["Invalid distro."]
+
+        return backend.list_files(package, distro)
+
+    @method(name="QueryRepoPackage")
+    def QueryRepoPackage(self, package: 's', query_type: 's', distro: 's') -> 'as':
+        backend = self._grabBackendForDistro(distro)
+        if backend is None:
+            return ["Invalid distro."]
+
+        return backend.query_package(package, query_type, distro)
+
+
+    @method(name="QueryRepo")
+    def QueryRepo(self, queries: 'a{ss}', distro: 's') -> 'a(sssiis)':
+        backend = self._grabBackendForDistro(distro)
+        if backend is None:
+            return [['Invalid Distro', 'This is an invalid distro.','N/A', -1, -1, 'N/A']]
+
+        pkgs = backend.search_packages(queries, distro)
+        ret = []
+        for pkg in pkgs:
+            ret.append([pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.url])
+
+        return ret
+
+    @method(name="GetDistros")
+    def GetDistros(self) -> 'as':
+        keys = []
+        for backend in self._backends:
+            for distro in backend.distros():
+                keys.append(distro)
+        return keys
+
+    async def RefreshPackages(self):
+        while True:
+            for backend in self._backends:
+                await self.RefreshWorker(backend)
+            await asyncio.sleep(86400)
+
+    async def RefreshWorker(self, backend: Backend):
+        try:
+            backend.refresh()
+        except:
+            return
+
+    def __init__(self, name):
+        super().__init__(name)
+        for backend in self._backends:
+            backend.init()
 
 async def main():
     bus: MessageBus = await MessageBus().connect()
