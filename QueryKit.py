@@ -16,7 +16,7 @@ from dbus_next.service import ServiceInterface, method, dbus_property, signal, V
 from dbus_next.aio import MessageBus
 
 import asyncio
-import pyalpm
+# import pyalpm
 import re
 
 from dataclasses import dataclass
@@ -171,85 +171,88 @@ class DnfBackend(Backend):
             keys.append(key)
         return keys
 
-class AlpmBackend(Backend):
-    _handles: Dict[str, pyalpm.Handle] = {
-        "arch": pyalpm.Handle(join(getcwd(), "cache/arch"), join(getcwd(), "cache/arch/dbs"))
-    }
-
-    _mirrors: Dict[str,List[str]] = {
-        "arch": ["http://mirrors.acm.wpi.edu/archlinux/{repo}/os/{arch}"]
-    }
-
-    _dbs: Dict[str,List[str]] = {
-        "arch": ["core", "community", "extra"]
-    }
-
-    def search_packages(self, query: str, distro: str):
-        handle = self._handles[distro]
-        pkgs = []
-        for db in handle.get_syncdbs():
-            for pkg in db.pkgcache:
-                if query in pkg.name:
-                    pkgs.append(Package(pkg.name, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url))
-        return pkgs
-
-    def list_files(self, package: str, distro: str):
-        handle = self._handles[distro]
-        pkg = None
-
-        for db in handle.get_syncdbs():
-            pkg = db.get_pkg(package)
-            if pkg is not None: break
-
-        if pkg is None:
-            return ["Package {} not found.".format(package)]
-
-        print(pkg.files)
-        return pkg.files
-
-    def query_repo(self, queries, distro):
-        handle = self._handles[distro]
-        pkgs = []
-        for db in handle.get_syncdbs():
-            pkgs.extend(db.pkgcache)
-
-        def flatten(pkgs) -> List[str]:
-            ret = []
-            for pkg in pkgs:
-                ret.append(pkg.name)
-            return ret
-        
-        if "whatconflicts" in queries.keys():
-            pkgs = filter(lambda pkg: queries["whatconflicts"] in flatten(pkgs.conflicts), pkgs)
-        if "whatrequires" in queries.keys():
-            pkgs = filter(lambda pkg: queries["whatdepends"] in flatten(pkgs.depends), pkgs)
-        if "whatobsoletes" in queries.keys():
-            pkgs = filter(lambda pkg: queries["whatobsoletes"] in flatten(pkgs.replaces), pkgs)
-        if "whatprovides" in queries.keys():
-            pkgs = filter(lambda pkg: queries["whatprovides"] in flatten(pkgs.provides), pkgs)
-        if "whatrecommends" in queries.keys():
-            pkgs = filter(lambda pkg: queries["whatrecommends"] in flatten(pkgs.optdepends), pkgs)
-
-        return [Package(pkg.name, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url) for pkg in pkgs]
-
-    def init(self):
-        print("Loading alpm handles...")
-        for key in self._handles.keys():
-            self._handles[key].arch = uname()[-1]
-            for db in self._dbs[key]:
-                syncdb = self._handles[key].register_syncdb(db, 0)
-                syncdb.servers = [item.format(repo = db, arch = uname()[-1]) for item in self._mirrors[key]]
-                syncdb.update(False)
-        print("Done loading alpm handles!")
-
-    def distros(self):
-        keys = []
-        for key in self._handles.keys():
-            keys.append(key)
-        return keys
+#class AlpmBackend(Backend):
+#    _handles: Dict[str, pyalpm.Handle] = {
+#        "arch": pyalpm.Handle(join(getcwd(), "cache/arch"), join(getcwd(), "cache/arch/dbs")),
+#        "manjaro": pyalpm.Handle(join(getcwd(), "cache/manjaro"), join(getcwd(), "cache/manjaro/dbs"))
+#    }
+#
+#    _mirrors: Dict[str,List[str]] = {
+#        "arch": ["http://mirrors.acm.wpi.edu/archlinux/{repo}/os/{arch}"],
+#        "manjaro": ["http://mirror.dacentec.com/manjaro/stable/{repo}/{arch}"]
+#    }
+#
+#    _dbs: Dict[str,List[str]] = {
+#        "arch": ["core", "community", "extra"],
+#        "manjaro": ["core", "community", "extra", "multilib"],
+#    }
+#
+#    def search_packages(self, query: str, distro: str):
+#        handle = self._handles[distro]
+#        pkgs = []
+#        for db in handle.get_syncdbs():
+#            for pkg in db.pkgcache:
+#                if query in pkg.name:
+#                    pkgs.append(Package(pkg.name, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url))
+#        return pkgs
+#
+#    def list_files(self, package: str, distro: str):
+#        handle = self._handles[distro]
+#        pkg = None
+#
+#        for db in handle.get_syncdbs():
+#            pkg = db.get_pkg(package)
+#            if pkg is not None: break
+#
+#        if pkg is None:
+#            return ["Package {} not found.".format(package)]
+#
+#        print(pkg.files)
+#        return pkg.files
+#
+#    def query_repo(self, queries, distro):
+#        handle = self._handles[distro]
+#        pkgs = []
+#        for db in handle.get_syncdbs():
+#            pkgs.extend(db.pkgcache)
+#
+#        def flatten(pkgs) -> List[str]:
+#            ret = []
+#            for pkg in pkgs:
+#                ret.append(pkg.name)
+#            return ret
+#        
+#        if "whatconflicts" in queries.keys():
+#            pkgs = filter(lambda pkg: queries["whatconflicts"] in flatten(pkgs.conflicts), pkgs)
+#        if "whatrequires" in queries.keys():
+#            pkgs = filter(lambda pkg: queries["whatdepends"] in flatten(pkgs.depends), pkgs)
+#        if "whatobsoletes" in queries.keys():
+#            pkgs = filter(lambda pkg: queries["whatobsoletes"] in flatten(pkgs.replaces), pkgs)
+#        if "whatprovides" in queries.keys():
+#            pkgs = filter(lambda pkg: queries["whatprovides"] in flatten(pkgs.provides), pkgs)
+#        if "whatrecommends" in queries.keys():
+#            pkgs = filter(lambda pkg: queries["whatrecommends"] in flatten(pkgs.optdepends), pkgs)
+#
+#        return [Package(pkg.name, pkg.desc, pkg.version, pkg.size, pkg.isize, pkg.url) for pkg in pkgs]
+#
+#    def init(self):
+#        print("Loading alpm handles...")
+#        for key in self._handles.keys():
+#            self._handles[key].arch = uname()[-1]
+#            for db in self._dbs[key]:
+#                syncdb = self._handles[key].register_syncdb(db, 0)
+#                syncdb.servers = [item.format(repo = db, arch = uname()[-1]) for item in self._mirrors[key]]
+#                syncdb.update(False)
+#        print("Done loading alpm handles!")
+#
+#    def distros(self):
+#        keys = []
+#        for key in self._handles.keys():
+#            keys.append(key)
+#        return keys
 
 class QueryKit(ServiceInterface):
-    _backends: List[Backend] = [DnfBackend(), AlpmBackend()]
+    _backends: List[Backend] = [DnfBackend()]
 
     def _grabBackendForDistro(self, distro) -> Backend:
         for backend in self._backends:

@@ -2,7 +2,7 @@
 name=Main Repository (OSS)
 enabled=1
 autorefresh=1
-metalink=http://download.opensuse.org/distribution/leap/15.1/repo/oss/repodata/repomd.xml.metalink
+baseurl=http://download.opensuse.org/distribution/leap/15.1/repo/oss/
 path=/
 type=rpm-md
 keeppackages=0
