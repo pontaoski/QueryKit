@@ -2,7 +2,7 @@
 name=Main Repository (OSS)
 enabled=1
 autorefresh=1
-baseurl=http://download.opensuse.org/distribution/leap/15.1/repo/oss/
+baseurl=http://download.opensuse.org/distribution/leap/15.2/repo/oss/
 path=/
 type=rpm-md
 keeppackages=0

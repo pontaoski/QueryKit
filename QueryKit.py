@@ -45,7 +45,17 @@ class Backend():
     def init(self): pass
 
 class DnfBackend(Backend):
-    _dnf_objects: Dict[str,dnf.Base] = {"fedora": dnf.Base(), "tumbleweed": dnf.Base(), "leap": dnf.Base(), "openmandriva": dnf.Base(), "mageia": dnf.Base(), "centos": dnf.Base()}
+    _dnf_objects: Dict[str,dnf.Base] = {
+        "fedora": dnf.Base(), 
+        "tumbleweed": dnf.Base(),
+        "leap": dnf.Base(),
+        "openmandriva": dnf.Base(),
+        "mageia": dnf.Base(),
+        "centos": dnf.Base(),
+        "packman-leap": dnf.Base(),
+        "packman-tumbleweed": dnf.Base(),
+        "rpmfusion": dnf.Base()
+    }
 
     def search_packages(self, query, distro) -> List[Package]:
         dnf_query_obj: dnf.query.Query = self._dnf_objects[distro].sack.query()
@@ -151,10 +161,10 @@ class DnfBackend(Backend):
                 self._dnf_objects[key].conf.gpgcheck = False
                 self._dnf_objects[key].conf.substitutions['arch'] = arch
                 self._dnf_objects[key].conf.substitutions['basearch'] = dnf.rpm.basearch(arch)
-                if key == "fedora":
-                    self._dnf_objects[key].conf.substitutions['releasever'] = '31'
+                if key == "fedora" or key == "rpmfusion":
+                    self._dnf_objects[key].conf.substitutions['releasever'] = '32'
                 if key == "openmandriva":
-                    self._dnf_objects[key].conf.substitutions['releasever'] = '4.0'
+                    self._dnf_objects[key].conf.substitutions['releasever'] = '4.1'
                 if key == "mageia":
                     self._dnf_objects[key].conf.substitutions['releasever'] = '7'
                 self._dnf_objects[key].conf.zchunk = False
