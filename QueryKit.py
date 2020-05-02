@@ -53,7 +53,16 @@ class DnfBackend(Backend):
         available_pkgs: dnf.query.Query = available_pkgs.filter(name__substr=query,arch=["noarch","x86_64"])
         pkgs: List[Package] = []
         for pkg in available_pkgs:
-            pkgs.append(Package(pkg.name, pkg.summary, pkg.version, pkg.downloadsize, pkg.installsize, pkg.remote_location(schemes=["https"])))
+            pkgs.append(
+                Package(
+                    pkg.name if pkg.name is not None else "",
+                    pkg.summary if pkg.summary is not None else "",
+                    pkg.version if pkg.version is not None else "",
+                    pkg.downloadsize if pkg.downloadsize is not None else -1,
+                    pkg.installsize if pkg.downloadsize is not None else -1,
+                    pkg.remote_location(schemes=["https"]) if pkg.remote_location(schemes=["https"]) is not None else ""
+                )
+            )
         return pkgs
 
     def list_files(self, package, distro) -> List[str]:
