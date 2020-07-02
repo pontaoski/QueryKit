@@ -65,11 +65,11 @@ class DnfBackend(Backend):
         for pkg in available_pkgs:
             pkgs.append(
                 Package(
-                    pkg.name if pkg.name is not None else "",
-                    pkg.summary if pkg.summary is not None else "",
-                    pkg.version if pkg.version is not None else "",
-                    pkg.downloadsize if pkg.downloadsize is not None else -1,
-                    pkg.installsize if pkg.downloadsize is not None else -1,
+                    pkg.name or "",
+                    pkg.summary or "",
+                    pkg.version or "",
+                    pkg.downloadsize or -1,
+                    pkg.installsize or -1,
                     pkg.remote_location(schemes=["https"]) if pkg.remote_location(schemes=["https"]) is not None else ""
                 )
             )
@@ -96,19 +96,19 @@ class DnfBackend(Backend):
             return ["Package {} not found.".format(package)]
 
         if query_type == "provides":
-            return [str(reldep) for reldep in available_pkgs[0].provides]
+            return map(str, available_pkgs[0].requires)
         if query_type == "requires":
-            return [str(reldep) for reldep in available_pkgs[0].requires]
+            return map(str, available_pkgs[0].requires)
         if query_type == "recommends":
-            return [str(reldep) for reldep in available_pkgs[0].recommends]
+            return map(str, available_pkgs[0].recommends)
         if query_type == "suggests":
-            return [str(reldep) for reldep in available_pkgs[0].suggests]
+            return map(str, available_pkgs[0].suggests)
         if query_type == "supplements":
-            return [str(reldep) for reldep in available_pkgs[0].supplements]
+            return map(str, available_pkgs[0].supplements)
         if query_type == "enhances":
-            return [str(reldep) for reldep in available_pkgs[0].conflicts]
+            return map(str, available_pkgs[0].conflicts)
         if query_type == "obsoletes":
-            return [str(reldep) for reldep in available_pkgs[0].obsoletes]
+            return map(str, available_pkgs[0].obsoletes)
 
         return ["Invalid query."]
 
@@ -156,7 +156,7 @@ class DnfBackend(Backend):
 
         to_pop = []
         for key in self._dnf_objects:
-            print("Loading {}...".format(key))
+            print(f"Loading {key}...")
             try:
                 self._dnf_objects[key].conf.gpgcheck = False
                 self._dnf_objects[key].conf.substitutions['arch'] = arch
@@ -173,11 +173,11 @@ class DnfBackend(Backend):
                 self._dnf_objects[key].read_all_repos()
                 self._dnf_objects[key].fill_sack(load_system_repo=False)
             except Exception as e:
-                print("Failed to load {}!".format(key))
-                print("Error:\n>>>\t{}".format(e))
+                print(f"Failed to load {key}!")
+                print(f"Error:\n>>>\t{e}")
                 to_pop.append(key)
                 continue
-            print("Loaded {}!".format(key))
+            print(f"Loaded {key}!")
         
         for i in to_pop:
             self._dnf_objects.pop(i)
@@ -324,11 +324,7 @@ class QueryKit(ServiceInterface):
 
     @method(name="GetDistros")
     def GetDistros(self) -> 'as':
-        keys = []
-        for backend in self._backends:
-            for distro in backend.distros():
-                keys.append(distro)
-        return keys
+        return [d for backend in self._backends for d in backend.distros()]
 
     async def RefreshPackages(self):
         while True:
