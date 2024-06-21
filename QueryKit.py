@@ -12,6 +12,7 @@ import dnf.query
 
 import hawkey
 
+from dbus_next import BusType
 from dbus_next.service import ServiceInterface, method, dbus_property, signal, Variant
 from dbus_next.aio import MessageBus
 
@@ -344,7 +345,7 @@ class QueryKit(ServiceInterface):
             backend.init()
 
 async def main():
-    bus: MessageBus = await MessageBus().connect()
+    bus: MessageBus = await MessageBus(bus_type = BusType.SYSTEM).connect()
     await bus.request_name("com.github.Appadeia.QueryKit")
     interface = QueryKit("com.github.Appadeia.QueryKit")
     bus.export("/com/github/Appadeia/QueryKit", interface)
