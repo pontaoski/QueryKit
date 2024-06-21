@@ -162,7 +162,7 @@ class DnfBackend(Backend):
                 self._dnf_objects[key].conf.substitutions['arch'] = arch
                 self._dnf_objects[key].conf.substitutions['basearch'] = dnf.rpm.basearch(arch)
                 if key == "fedora" or key == "rpmfusion":
-                    self._dnf_objects[key].conf.substitutions['releasever'] = '33'
+                    self._dnf_objects[key].conf.substitutions['releasever'] = '40'
                 if key == "openmandriva":
                     self._dnf_objects[key].conf.substitutions['releasever'] = '4.1'
                 if key == "mageia":
