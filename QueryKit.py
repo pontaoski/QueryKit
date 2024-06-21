@@ -9,6 +9,7 @@ import dnf.base
 import dnf.conf
 import dnf.const
 import dnf.query
+import sys
 
 import hawkey
 
@@ -151,13 +152,13 @@ class DnfBackend(Backend):
             self._dnf_objects[key].fill_sack(load_system_repo=False)
 
     def init(self):
-        print("Loading dnf repos...")
+        print("Loading dnf repos...", file=sys.stderr)
 
         arch = hawkey.detect_arch()
 
         to_pop = []
         for key in self._dnf_objects:
-            print(f"Loading {key}...")
+            print(f"Loading {key}...", file=sys.stderr)
             try:
                 self._dnf_objects[key].conf.gpgcheck = False
                 self._dnf_objects[key].conf.optional_metadata_types += ['filelists']
@@ -175,16 +176,16 @@ class DnfBackend(Backend):
                 self._dnf_objects[key].read_all_repos()
                 self._dnf_objects[key].fill_sack(load_system_repo=False)
             except Exception as e:
-                print(f"Failed to load {key}!")
-                print(f"Error:\n>>>\t{e}")
+                print(f"Failed to load {key}!", file=sys.stderr)
+                print(f"Error:\n>>>\t{e}", file=sys.stderr)
                 to_pop.append(key)
                 continue
-            print(f"Loaded {key}!")
+            print(f"Loaded {key}!", file=sys.stderr)
         
         for i in to_pop:
             self._dnf_objects.pop(i)
 
-        print("Dnf repos loaded!")
+        print("Dnf repos loaded!", file=sys.stderr)
 
     def distros(self):
         keys = []
