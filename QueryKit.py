@@ -160,6 +160,7 @@ class DnfBackend(Backend):
             print(f"Loading {key}...")
             try:
                 self._dnf_objects[key].conf.gpgcheck = False
+                self._dnf_objects[key].conf.optional_metadata_types += ['filelists']
                 self._dnf_objects[key].conf.substitutions['arch'] = arch
                 self._dnf_objects[key].conf.substitutions['basearch'] = dnf.rpm.basearch(arch)
                 if key == "fedora" or key == "rpmfusion":
